@@ -35,6 +35,9 @@ def generate(board, empty):
         newboard = generate(board, empty)
         if newboard is not None:
             return newboard
+
+        board[pos] = 0  # reset the board
+        empty.append(pos)
     # If the board that is returned is None, then try a different number in the position
     return None
     # If no numbers can be added in the box, this must be an impossible structure return as is
