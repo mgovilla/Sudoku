@@ -5,8 +5,9 @@ import random
 We will be using a backtracking algorithm to create a board
 (It is essentially the same as the solving algorithm) 
 """
-size = 4
+size = 9
 n = int(math.sqrt(size))
+numbers = [i + 1 for i in range(size)]  # List of the possible numbers
 
 
 def generate(board, empty):
@@ -17,30 +18,23 @@ def generate(board, empty):
     empty.remove(pos)  # Remove that position
 
     # Figure out which numbers can be added to the position
-    numbers = [i + 1 for i in range(size)]  # Assume all of them can
     possible = []
     for p in numbers:
         if valid(p, (int(pos / size), pos % size), board):
             possible.append(p)
-    # Possible is a cleaned array of possible values
-    # If it is empty, there are no possible values in the square which means the puzzle is invalid
-    if len(possible) == 0:
-        return None
 
-    # Shuffle the values
+    # Try each value in a random order
     random.shuffle(possible)
-
     for num in possible:
         board[pos] = num
         newboard = generate(board, empty)
         if newboard is not None:
             return newboard
 
-        board[pos] = 0  # reset the board
-        empty.append(pos)
-    # If the board that is returned is None, then try a different number in the position
+    # If none of the possible values resulted in a valid puzzle, reset
+    board[pos] = 0
+    empty.append(pos)
     return None
-    # If no numbers can be added in the box, this must be an impossible structure return as is
 
 
 def valid(num, pos, grid):
