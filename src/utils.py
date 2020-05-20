@@ -6,7 +6,7 @@ from src.CandidateTable import *
 We will be using a backtracking algorithm to create a board
 (It is essentially the same as the solving algorithm) 
 """
-size = 4
+size = 16
 n = int(math.sqrt(size))
 numbers = [i + 1 for i in range(size)]  # List of the possible numbers
 
@@ -51,43 +51,52 @@ def generate(board):
         candtable.update(square, length)
 
         # Go through related squares
-        for j in range(size):
-            col = squares[j * size + square.coord[1]]
-            row = squares[square.coord[0] * size + j]
-
-            boxr, boxc = int(square.coord[0] / n), int(square.coord[1] / n)
-            box = squares[int(j / n) * size + (j % n) + n * (boxc + size * boxr)]
-
-            if col != square:
-                try:
-                    length = len(col.candidates)
-                    col.candidates.remove(num)
-                    candtable.update(col, length)
-                except ValueError: pass  # Do nothing because its ok
-
-            if row != square:
-                try:
-                    length = len(row.candidates)
-                    row.candidates.remove(num)
-                    candtable.update(row, length)
-                except ValueError: pass  # Do nothing because its ok
-
-            if box != square:
-                try:
-                    length = len(box.candidates)
-                    box.candidates.remove(num)
-                    candtable.update(box, length)
-                except ValueError: pass  # Do nothing because its ok
+        update_related(squares, candtable, square, num)
 
         # Update the candidate table, if any square has only 1 candidate fill it in the board
-        for s in candtable.get(1):
-            s.set_random()
+        restricted = candtable.get(1)
+        while len(restricted) > 0:
+            s = restricted[0]
+            num = s.set_random()
+            candtable.update(s, 1)
+            update_related(squares, candtable, s, num)
+            restricted = candtable.get(1)
             # TODO: Check if setting this causes any issues elsewhere: if so, need to implement backtracking
-            candtable.get(0).append(s)
-
-        candtable.get(1).clear()
 
     return squares_to_board(squares)
+
+
+def update_related(squares, candtable, square, num):
+    for j in range(size):
+        col = squares[j * size + square.coord[1]]
+        row = squares[square.coord[0] * size + j]
+
+        boxr, boxc = int(square.coord[0] / n), int(square.coord[1] / n)
+        box = squares[int(j / n) * size + (j % n) + n * (boxc + size * boxr)]
+
+        if col != square:
+            try:
+                length = len(col.candidates)
+                col.candidates.remove(num)
+                candtable.update(col, length)
+            except ValueError:
+                pass  # Do nothing because its ok
+
+        if row != square:
+            try:
+                length = len(row.candidates)
+                row.candidates.remove(num)
+                candtable.update(row, length)
+            except ValueError:
+                pass  # Do nothing because its ok
+
+        if box != square:
+            try:
+                length = len(box.candidates)
+                box.candidates.remove(num)
+                candtable.update(box, length)
+            except ValueError:
+                pass  # Do nothing because its ok
 
 
 def squares_to_board(squares):
@@ -141,3 +150,4 @@ def shuffle(arr):
 if __name__ == '__main__':
     b = [0] * size ** 2
     reg = generate(b)
+

@@ -17,5 +17,10 @@ class Board:
 
 
 if __name__ == "__main__":
-    n = Board()
-    n.print()
+    file = open("boards_16.txt", "w")
+    for i in range(1000):
+        n = Board()
+        if n.board.count(0) == 0:
+            file.write(str(n.board) + "\n")
+
+    file.close()
