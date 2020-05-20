@@ -6,15 +6,10 @@ Board class to hold the Sudoku
 
 
 class Board:
-    board = [0] * size ** 2
-    empty = []
 
     def __init__(self):
         # Generate the sudoku
-        for i in range(size ** 2):
-            self.empty.append(i)
-
-        self.board = generate(self.board, self.empty)
+        self.board = generate([0] * size ** 2)
 
     def print(self):
         for r in range(size):

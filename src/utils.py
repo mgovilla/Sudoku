@@ -1,40 +1,112 @@
 import math
 import random
+from src.CandidateTable import *
 
 """
 We will be using a backtracking algorithm to create a board
 (It is essentially the same as the solving algorithm) 
 """
-size = 9
+size = 4
 n = int(math.sqrt(size))
 numbers = [i + 1 for i in range(size)]  # List of the possible numbers
 
 
-def generate(board, empty):
-    if len(empty) == 0:
-        return board
-    # Choose a random position to enter the number
-    pos = random.sample(empty, 1)[0]
-    empty.remove(pos)  # Remove that position
+def generate(board):
+    # Create the candidate hashtable, every square is empty
+    squares = [Square(int(i / size), i % size, numbers.copy()) for i in range(len(board))]
 
-    # Figure out which numbers can be added to the position
-    possible = []
-    for p in numbers:
-        if valid(p, (int(pos / size), pos % size), board):
-            possible.append(p)
+    for i in range(len(board)):
+        num = board[i]
+        if num > 0:
+            squares[i].set(num)
+            pos = squares[i].coord
+            for j in range(size):
+                try: squares[j * size + pos[1]].candidates.remove(num)
+                except ValueError: pass  # Do nothing because its ok
 
-    # Try each value in a random order
-    random.shuffle(possible)
-    for num in possible:
-        board[pos] = num
-        newboard = generate(board, empty)
-        if newboard is not None:
-            return newboard
+                try: squares[pos[0] * size + j].candidates.remove(num)
+                except ValueError: pass  # Do nothing because its ok
 
-    # If none of the possible values resulted in a valid puzzle, reset
-    board[pos] = 0
-    empty.append(pos)
-    return None
+                boxr, boxc = int(pos[0] / n), int(pos[1] / n)
+
+                index = int(j / n) * size + (j % n) + n * (boxc + size * boxr)
+                try: squares[index].candidates.remove(num)
+                except ValueError: pass  # Do nothing because its ok
+
+    candtable = CandidateTable(squares)
+
+    # repeat until the candidate hashtable is empty
+    while len(candtable.get(0)) < size ** 2:
+        # Choose random position in the smallest non-empty chain
+        # TODO: Possibly implement backtracking here 
+        square = candtable.get_random()
+
+        if square is None:
+            break
+
+        # Assign the value randomly
+        length = len(square.candidates)
+        num = square.set_random()
+        # update squares[] maybe
+        candtable.update(square, length)
+
+        # Go through related squares
+        for j in range(size):
+            col = squares[j * size + square.coord[1]]
+            row = squares[square.coord[0] * size + j]
+
+            boxr, boxc = int(square.coord[0] / n), int(square.coord[1] / n)
+            box = squares[int(j / n) * size + (j % n) + n * (boxc + size * boxr)]
+
+            if col != square:
+                try:
+                    length = len(col.candidates)
+                    col.candidates.remove(num)
+                    candtable.update(col, length)
+                except ValueError: pass  # Do nothing because its ok
+
+            if row != square:
+                try:
+                    length = len(row.candidates)
+                    row.candidates.remove(num)
+                    candtable.update(row, length)
+                except ValueError: pass  # Do nothing because its ok
+
+            if box != square:
+                try:
+                    length = len(box.candidates)
+                    box.candidates.remove(num)
+                    candtable.update(box, length)
+                except ValueError: pass  # Do nothing because its ok
+
+        # Update the candidate table, if any square has only 1 candidate fill it in the board
+        for s in candtable.get(1):
+            s.set_random()
+            # TODO: Check if setting this causes any issues elsewhere: if so, need to implement backtracking
+            candtable.get(0).append(s)
+
+        candtable.get(1).clear()
+
+    return squares_to_board(squares)
+
+
+def squares_to_board(squares):
+    board = []
+    for s in squares:
+        if s.value:
+            board.append(s.value)
+        else:
+            board.append(0)
+
+    return board
+
+
+def print_board(squares):
+    temp = []
+    for r in range(size):
+        temp.append([squares[r * size + c] for c in range(size)])
+
+    return temp
 
 
 def valid(num, pos, grid):
@@ -67,7 +139,5 @@ def shuffle(arr):
 
 
 if __name__ == '__main__':
-    b = [0] * size**2
-    e = [i for i in range(size)]
-
-    print(generate(b, e))
+    b = [0] * size ** 2
+    reg = generate(b)
