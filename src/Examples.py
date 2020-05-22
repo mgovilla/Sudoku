@@ -1,6 +1,5 @@
 import unittest
-from src.CandidateTable import *
-from src.utils import *
+from src.board import *
 
 
 class TestCandidates(unittest.TestCase):
@@ -16,6 +15,13 @@ class TestCandidates(unittest.TestCase):
         updated = Square(2, 1, [1, 2, 4])
         d[4].remove(updated)
         print(d)
+
+    def test_board_generation(self):
+        example = Board()
+        example.print()
+
+    def test_generate_many(self):
+        generate_1000()
 
 
 if __name__ == '__main__':

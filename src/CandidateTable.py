@@ -18,9 +18,9 @@ class CandidateTable:
         return self.buckets.get(key)
 
     def get_random(self):
-        for i in range(2, self.size + 1):
-            if len(self.buckets[i]) > 0:
-                return random.sample(self.buckets[i], 1)[0]
+        for i in range(self.size):
+            if len(self.buckets[i + 1]) > 0:
+                return random.sample(self.buckets[i + 1], 1)[0]
 
         return None
 
