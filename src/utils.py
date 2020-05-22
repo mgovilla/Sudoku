@@ -6,7 +6,7 @@ from src.CandidateTable import *
 We will be using a backtracking algorithm to create a board
 (It is essentially the same as the solving algorithm) 
 """
-size = 16
+size = 9
 n = int(math.sqrt(size))
 numbers = [i + 1 for i in range(size)]  # List of the possible numbers
 
@@ -38,7 +38,6 @@ def generate(board):
     # repeat until the candidate hashtable is empty
     while len(candtable.get(0)) < size ** 2:
         # Choose random position in the smallest non-empty chain
-        # TODO: Possibly implement backtracking here 
         square = candtable.get_random()
 
         if square is None:
@@ -67,6 +66,46 @@ def generate(board):
 
 
 def update_related(squares, candtable, square, num):
+    # TODO: Determine if a square can only be one option when the other squares in row/col/box can't be it
+
+    for c in related_iterator(squares, square):
+        for s in c:
+            try:
+                length = len(s.candidates)
+                s.candidates.remove(num)
+                candtable.update(s, length)
+
+            except ValueError:
+                pass  # Do nothing because we have already seen the square
+
+    # Go through col/row/box check if each empty square is the only option for for that col/row/box
+    for rel in related_iterator(squares, s):
+        # rel is a list of (size - 1) of all squares in col/row/box
+        empty = [i for i in rel if i.value is None]
+        if s.value is None: empty.append(s)
+        frequency = [0] * size
+
+        for e in empty:
+            for num in e.candidates:
+                frequency[num - 1] += 1
+
+        constrained = [i + 1 for i in range(size) if frequency[i] == 1]
+        for con in constrained:
+            for e in empty:
+                if e.candidates.count(con) > 0:
+                    length = len(e.candidates)
+                    e.candidates = [con]
+                    candtable.update(e, length)
+
+
+"""
+Returns an iterator of length 3 with each element being a list (size - 1)
+of squares in the column, row, then box respectively 
+"""
+
+
+def related_iterator(squares, square):
+    cols, rows, boxs = [], [], []
     for j in range(size):
         col = squares[j * size + square.coord[1]]
         row = squares[square.coord[0] * size + j]
@@ -74,29 +113,11 @@ def update_related(squares, candtable, square, num):
         boxr, boxc = int(square.coord[0] / n), int(square.coord[1] / n)
         box = squares[int(j / n) * size + (j % n) + n * (boxc + size * boxr)]
 
-        if col != square:
-            try:
-                length = len(col.candidates)
-                col.candidates.remove(num)
-                candtable.update(col, length)
-            except ValueError:
-                pass  # Do nothing because its ok
+        if col != square: cols.append(col)
+        if row != square: rows.append(row)
+        if box != square: boxs.append(box)
 
-        if row != square:
-            try:
-                length = len(row.candidates)
-                row.candidates.remove(num)
-                candtable.update(row, length)
-            except ValueError:
-                pass  # Do nothing because its ok
-
-        if box != square:
-            try:
-                length = len(box.candidates)
-                box.candidates.remove(num)
-                candtable.update(box, length)
-            except ValueError:
-                pass  # Do nothing because its ok
+    return [cols, rows, boxs]
 
 
 def squares_to_board(squares):
@@ -136,7 +157,7 @@ def valid(num, pos, grid):
 
 
 def solve(board):
-    pass
+    return generate(board)
 
 
 def shuffle(arr):
@@ -150,4 +171,3 @@ def shuffle(arr):
 if __name__ == '__main__':
     b = [0] * size ** 2
     reg = generate(b)
-
