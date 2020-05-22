@@ -60,14 +60,11 @@ def generate(board):
             candtable.update(s, 1)
             update_related(squares, candtable, s, num)
             restricted = candtable.get(1)
-            # TODO: Check if setting this causes any issues elsewhere: if so, need to implement backtracking
 
     return squares_to_board(squares)
 
 
 def update_related(squares, candtable, square, num):
-    # TODO: Determine if a square can only be one option when the other squares in row/col/box can't be it
-
     for c in related_iterator(squares, square):
         for s in c:
             try:
@@ -79,10 +76,10 @@ def update_related(squares, candtable, square, num):
                 pass  # Do nothing because we have already seen the square
 
     # Go through col/row/box check if each empty square is the only option for for that col/row/box
-    for rel in related_iterator(squares, s):
+    for rel in related_iterator(squares, square):
         # rel is a list of (size - 1) of all squares in col/row/box
         empty = [i for i in rel if i.value is None]
-        if s.value is None: empty.append(s)
+        if square.value is None: empty.append(square)
         frequency = [0] * size
 
         for e in empty:
