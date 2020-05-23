@@ -19,21 +19,14 @@ def generate(board):
         num = board[i]
         if num > 0:
             squares[i].set(num)
-            pos = squares[i].coord
-            for j in range(size):
-                try: squares[j * size + pos[1]].candidates.remove(num)
-                except ValueError: pass  # Do nothing because its ok
-
-                try: squares[pos[0] * size + j].candidates.remove(num)
-                except ValueError: pass  # Do nothing because its ok
-
-                boxr, boxc = int(pos[0] / n), int(pos[1] / n)
-
-                index = int(j / n) * size + (j % n) + n * (boxc + size * boxr)
-                try: squares[index].candidates.remove(num)
-                except ValueError: pass  # Do nothing because its ok
 
     candtable = CandidateTable(squares)
+
+    for g in candtable.get(0):
+        rules(squares, candtable, g, g.value)
+
+    for g in candtable.get(0):
+        elimination(squares, candtable, g)
 
     # repeat until the candidate hashtable is empty
     while len(candtable.get(0)) < size ** 2:
@@ -65,6 +58,11 @@ def generate(board):
 
 
 def update_related(squares, candtable, square, num):
+    rules(squares, candtable, square, num)
+    elimination(squares, candtable, square)
+
+
+def rules(squares, candtable, square, num):
     for c in related_iterator(squares, square):
         for s in c:
             try:
@@ -75,6 +73,9 @@ def update_related(squares, candtable, square, num):
             except ValueError:
                 pass  # Do nothing because we have already seen the square
 
+
+def elimination(squares, candtable, square):
+    # TODO: Extend to look at related boxes (to solve board 3)
     # Go through col/row/box check if each empty square is the only option for for that col/row/box
     for rel in related_iterator(squares, square):
         # rel is a list of (size - 1) of all squares in col/row/box
