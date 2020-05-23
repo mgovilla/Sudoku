@@ -20,7 +20,7 @@ class Board:
 
 
 def generate_1000():
-    file = open("generated/boards_9.txt", "w")
+    file = open("boards_9.txt", "w")
     for i in range(1000):
         n = Board()
         if n.board.count(0) == 0:
