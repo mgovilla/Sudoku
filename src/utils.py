@@ -19,16 +19,16 @@ def solve(board):
         num = board[i]
         if num > 0:
             squares[i].set(num)
-            update_related(squares, squares[i], num)
+            update_related(squares, squares[i])
 
     candtable = CandidateTable(squares)
 
     restricted = candtable.get(1)
     while len(restricted) > 0:
         s = restricted[0]
-        num = s.set_random()
+        s.set_random()
         candtable.update(s, 1)
-        update_related(squares, s, num, candtable)
+        update_related(squares, s, candtable)
         restricted = candtable.get(1)
 
     return squares_to_board(squares)
@@ -42,7 +42,7 @@ def generate(board):
         num = board[i]
         if num > 0:
             squares[i].set(num)
-            update_related(squares, squares[i], num)
+            update_related(squares, squares[i])
 
     candtable = CandidateTable(squares)
 
@@ -56,56 +56,50 @@ def generate(board):
 
         # Assign the value randomly
         length = len(square.candidates)
-        num = square.set_random()
+        square.set_random()
         # update squares[] maybe
         candtable.update(square, length)
 
         # Go through related squares
-        update_related(squares, square, num, candtable)
+        update_related(squares, square, candtable)
 
         # Update the candidate table, if any square has only 1 candidate fill it in the board
         restricted = candtable.get(1)
         while len(restricted) > 0:
             s = restricted[0]
-            num = s.set_random()
+            s.set_random()
             candtable.update(s, 1)
-            update_related(squares, s, num, candtable)
+            update_related(squares, s, candtable)
             restricted = candtable.get(1)
 
     return squares_to_board(squares)
 
 
-def update_related(squares, square, num, candtable=None):
-    rules(squares, square, num, candtable)
-    elimination(squares, square, candtable)
-    boxelim(squares, square, candtable)
+def update_related(squares, square, candtable=None):
+    directly_related(squares, square, candtable)
+    box_related(squares, square, candtable)
 
 
-def rules(squares, square, num, candtable=None):
-    for c in related_iterator(squares, square):
-        for s in c:
-            try:
-                length = len(s.candidates)
-                s.candidates.remove(num)
-                if candtable is not None: candtable.update(s, length)
-
-            except ValueError:
-                pass  # Do nothing because we have already seen the square
-
-
-def elimination(squares, square, candtable=None):
-    # TODO: Extend to look at related boxes (to solve board 3)
+def directly_related(squares, square, candtable=None):
     # Go through col/row/box check if each empty square is the only option for for that col/row/box
     for rel in related_iterator(squares, square):
-        # rel is a list of (size - 1) of all squares in col/row/box
+        # rel is a list of (size - 1) of all squares in col/row/box not including square
         empty = [i for i in rel if i.value is None]
-        if square.value is None: empty.append(square)
-        frequency = [0] * size
 
+        # With all of the empty squares, get the frequency for each candidate
+        frequency = [0] * size
         for e in empty:
+            # remove the square's value from the candidates list if it's there
+            try:
+                length = len(e.candidates)
+                e.candidates.remove(square.value)
+                if candtable is not None: candtable.update(e, length)
+            except ValueError: pass  # Do nothing because we have already seen the square
+
             for num in e.candidates:
                 frequency[num - 1] += 1
 
+        # If a number only appears once, then the box with it must take that value
         constrained = [i + 1 for i in range(size) if frequency[i] == 1]
         for con in constrained:
             for e in empty:
@@ -115,8 +109,10 @@ def elimination(squares, square, candtable=None):
                     if candtable is not None: candtable.update(e, length)
 
 
-def boxelim(squares, square, candtable=None):
+def box_related(squares, square, candtable=None):
     # TODO: Stop trying to remove candidates from boxes that contain the value
+    # TODO: Revisit Logic to make it more clear
+
     # Maybe look at all the unrelated boxes, and the ones with the same value, look at the intersection box
     # (can be only one) to see if the empty squares with the value as candidate are in the same row/col
     box_coord = (int(square.coord[0] / n), int(square.coord[1] / n))
