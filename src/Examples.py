@@ -22,10 +22,7 @@ class TestCandidates(unittest.TestCase):
         for i in range(len(board)):
             num = board[i]
             if num > 0:
-                self.squares[i].set(num)
-                update_related(self.squares, self.squares[i])
-
-        self.candtable = CandidateTable(self.squares)
+                set_square(self.squares, self.squares[i], num)
 
     def test_rules(self):
         board = [0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -40,15 +37,14 @@ class TestCandidates(unittest.TestCase):
 
         self.initialize(board)
         square = self.squares[31]
-        square.set(5)
-        self.candtable.update(square, 9)
-        rules(self.squares, square, self.candtable)
+        set_square(self.squares, square, 5)
 
         flag = True
-        for rel in related_iterator(self.squares, square):
-            for square in rel:
-                if square.candidates != [1, 2, 3, 4, 6, 7, 8, 9]:
-                    flag = False
+        for rel in related_iterator(self.squares, self.squares[31]):
+            for sq in rel:
+                if sq != square:
+                    if sq.candidates != [1, 2, 3, 4, 6, 7, 8, 9]:
+                        flag = False
 
         self.assertTrue(flag)
 
@@ -65,10 +61,7 @@ class TestCandidates(unittest.TestCase):
 
         self.initialize(board)
         square = self.squares[37]
-        length = len(square.candidates)
-        square.set(1)
-        self.candtable.update(square, length)
-        directly_related(self.squares, square, self.candtable)
+        set_square(self.squares, square, 1)
 
         self.assertEquals(self.squares[38].candidates, [5])
 
@@ -85,10 +78,7 @@ class TestCandidates(unittest.TestCase):
 
         self.initialize(board)
         square = self.squares[14]
-        length = len(square.candidates)
-        square.set(1)
-        self.candtable.update(square, length)
-        directly_related(self.squares, square, self.candtable)
+        set_square(self.squares, square, 1)
 
         self.assertEquals(self.squares[23].candidates, [5])
 
@@ -105,14 +95,11 @@ class TestCandidates(unittest.TestCase):
 
         self.initialize(board)
         square = self.squares[5]
-        length = len(square.candidates)
-        square.set(1)
-        self.candtable.update(square, length)
-        directly_related(self.squares, square, self.candtable)
+        set_square(self.squares, square, 1)
 
         self.assertEquals(self.squares[14].candidates, [5])
 
-    def test_elimination_fail1(self):
+    def test_elimination_compound1(self):
         board = [0, 0, 0, 3, 0, 1, 0, 0, 0,
                  0, 0, 0, 4, 0, 0, 0, 0, 0,
                  0, 0, 0, 6, 0, 0, 0, 0, 0,
@@ -125,14 +112,11 @@ class TestCandidates(unittest.TestCase):
 
         self.initialize(board)
         square = self.squares[18]
-        length = len(square.candidates)
-        square.set(5)
-        self.candtable.update(square, length)
-        directly_related(self.squares, square, self.candtable)
+        set_square(self.squares, square, 5)
 
-        self.assertNotEqual(self.squares[14].candidates, [5])
+        self.assertEqual(self.squares[14].candidates, [5])
 
-    def test_elimination_fail2(self):
+    def test_elimination_compound2(self):
         board = [0, 0, 0, 3, 0, 0, 0, 0, 0,
                  0, 0, 0, 4, 0, 0, 0, 0, 0,
                  0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -145,12 +129,9 @@ class TestCandidates(unittest.TestCase):
 
         self.initialize(board)
         square = self.squares[31]
-        length = len(square.candidates)
-        square.set(5)
-        self.candtable.update(square, length)
-        directly_related(self.squares, square, self.candtable)
+        set_square(self.squares, square, 5)
 
-        self.assertNotEquals(self.squares[21].candidates, [5])
+        self.assertEquals(self.squares[21].candidates, [5])
 
     def test_boxrules_row(self):
         board = [0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -165,10 +146,7 @@ class TestCandidates(unittest.TestCase):
 
         self.initialize(board)
         square = self.squares[31]
-        length = len(square.candidates)
-        square.set(5)
-        self.candtable.update(square, length)
-        box_related(self.squares, square, self.candtable)
+        set_square(self.squares, square, 5)
 
         self.assertEquals(self.squares[38].candidates, [5])
 
@@ -185,10 +163,7 @@ class TestCandidates(unittest.TestCase):
 
         self.initialize(board)
         square = self.squares[31]
-        length = len(square.candidates)
-        square.set(5)
-        self.candtable.update(square, length)
-        box_related(self.squares, square, self.candtable)
+        set_square(self.squares, square, 5)
 
         self.assertEquals(self.squares[23].candidates, [5])
 

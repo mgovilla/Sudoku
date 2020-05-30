@@ -12,7 +12,7 @@ class Board:
         if init:
             self.board = solve(init)
         else:
-            self.board = generate([0] * size ** 2)
+            self.board = generate()
 
     def print(self):
         for r in range(size):
@@ -20,17 +20,19 @@ class Board:
 
 
 def generate_1000():
-    file = open("generated/boards_9.txt", "w")
+    file = open("generated/boards_9_recursive.txt", "w")
     for i in range(1000):
-        n = Board()
-        if n.board.count(0) == 0:
-            file.write(str(n.board) + "\n")
+        try:
+            board = Board()
+            file.write(str(board.board) + "\n")
+        except IndexError:
+            pass
 
     file.close()
 
 
 if __name__ == "__main__":
-    n = Board(board3)
+    n = Board(board8)
     n.print()
 
 

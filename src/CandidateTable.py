@@ -1,33 +1,31 @@
-import math
 import random
 
-
-class CandidateTable:
-
-    def __init__(self, board):
-        self.size = int(math.sqrt(len(board)))
-        self.buckets = {i: [] for i in range(self.size + 1)}
-        for square in board:
-            self.buckets[len(square.candidates)].append(square)
-
-    def update(self, square, prev):
-        self.buckets[prev].remove(square)
-        self.buckets[len(square.candidates)].append(square)
-
-    def get(self, key):
-        return self.buckets.get(key)
-
-    def get_random(self):
-        for i in range(self.size):
-            if len(self.buckets[i + 1]) > 0:
-                return random.sample(self.buckets[i + 1], 1)[0]
-
-        return None
+# TODO: Delete Candidate Table (?!)
+# class CandidateTable:
+#
+#     def __init__(self, board):
+#         self.size = int(math.sqrt(len(board)))
+#         self.buckets = {i: [] for i in range(self.size + 1)}
+#         for square in board:
+#             self.buckets[len(square.candidates)].append(square)
+#
+#     def update(self, square, prev):
+#         self.buckets[prev].remove(square)
+#         self.buckets[len(square.candidates)].append(square)
+#
+#     def get(self, key):
+#         return self.buckets.get(key)
+#
+#     def get_random(self):
+#         for i in range(self.size):
+#             if len(self.buckets[i + 1]) > 0:
+#                 return random.sample(self.buckets[i + 1], 1)[0]
+#
+#         return None
 
 
 class Square:
 
-    # TODO: Replace r and c because they are not useful
     def __init__(self, r, c, candidates, value=None):
         self.coord = (r, c)
         self.candidates = candidates
@@ -45,9 +43,7 @@ class Square:
 
     def set(self, value):
         self.value = value
-        self.candidates.clear()
 
-    def set_random(self):
-        self.value = random.sample(self.candidates, 1)[0]
-        self.candidates.clear()
-        return self.value
+    def random_cand(self):
+        return random.sample(self.candidates, 1)[0]
+

@@ -1,209 +1,137 @@
-import math
-import random
+from math import sqrt
+
 from src.CandidateTable import *
 
-"""
-We will be using a backtracking algorithm to create a board
-(It is essentially the same as the solving algorithm) 
-"""
 size = 9
-n = int(math.sqrt(size))
+n = int(sqrt(size))
 numbers = [i + 1 for i in range(size)]  # List of the possible numbers
+
+
+def generate():
+    squares = [Square(i // size, i % size, numbers.copy()) for i in range(size**2)]
+    empty_squares = empty(squares)
+
+    givens = []
+    while len(empty_squares) > 0:
+        square = random.sample(empty_squares, 1)[0]
+        givens.append(square)
+        set_square(squares, square, square.random_cand())
+        empty_squares = empty(squares)
+
+    return squares_to_board(squares)
+
+
+def empty(squares):
+    temp = []
+    for square in squares:
+        if square.value is None:
+            temp.append(square)
+
+    return temp
 
 
 def solve(board):
     # Initialization with the input board
-    squares = [Square(int(i / size), i % size, numbers.copy()) for i in range(len(board))]
+    squares = [Square(i // size, i % size, numbers.copy()) for i in range(len(board))]
 
     for i in range(len(board)):
         num = board[i]
         if num > 0:
-            squares[i].set(num)
-            update_related(squares, squares[i])
-
-    candtable = CandidateTable(squares)
-
-    restricted = candtable.get(1)
-    while len(restricted) > 0:
-        s = restricted[0]
-        s.set_random()
-        candtable.update(s, 1)
-        update_related(squares, s, candtable)
-        restricted = candtable.get(1)
+            set_square(squares, squares[i], num)
 
     return squares_to_board(squares)
 
 
-def generate(board):
-    # Create the candidate hashtable, every square is empty
-    squares = [Square(int(i / size), i % size, numbers.copy()) for i in range(len(board))]
-
-    for i in range(len(board)):
-        num = board[i]
-        if num > 0:
-            squares[i].set(num)
-            update_related(squares, squares[i])
-
-    candtable = CandidateTable(squares)
-
-    # repeat until the candidate hashtable is empty
-    while len(candtable.get(0)) < size ** 2:
-        # Choose random position in the smallest non-empty chain
-        square = candtable.get_random()
-
-        if square is None:
-            break
-
-        # Assign the value randomly
-        length = len(square.candidates)
-        square.set_random()
-        # update squares[] maybe
-        candtable.update(square, length)
-
-        # Go through related squares
-        update_related(squares, square, candtable)
-
-        # Update the candidate table, if any square has only 1 candidate fill it in the board
-        restricted = candtable.get(1)
-        while len(restricted) > 0:
-            s = restricted[0]
-            s.set_random()
-            candtable.update(s, 1)
-            update_related(squares, s, candtable)
-            restricted = candtable.get(1)
-
-    return squares_to_board(squares)
-
-
-def update_related(squares, square, candtable=None):
-    directly_related(squares, square, candtable)
-    box_related(squares, square, candtable)
-
-
-def directly_related(squares, square, candtable=None):
-    # Go through col/row/box check if each empty square is the only option for for that col/row/box
-    for rel in related_iterator(squares, square):
-        # rel is a list of (size - 1) of all squares in col/row/box not including square
-        empty = [i for i in rel if i.value is None]
-
-        # With all of the empty squares, get the frequency for each candidate
-        frequency = [0] * size
-        for e in empty:
+def set_square(squares, square, num):
+    square.value = num
+    related = related_iterator(squares, square)
+    for rel in range(len(related)):
+        for sq in related[rel]:
             # remove the square's value from the candidates list if it's there
-            try:
-                length = len(e.candidates)
-                e.candidates.remove(square.value)
-                if candtable is not None: candtable.update(e, length)
-            except ValueError: pass  # Do nothing because we have already seen the square
+            if sq != square:
+                remove_candidates(squares, sq, [num], square)
 
-            for num in e.candidates:
-                frequency[num - 1] += 1
-
-        # If a number only appears once, then the box with it must take that value
-        constrained = [i + 1 for i in range(size) if frequency[i] == 1]
-        for con in constrained:
-            for e in empty:
-                if e.candidates.count(con) > 0:
-                    length = len(e.candidates)
-                    e.candidates = [con]
-                    if candtable is not None: candtable.update(e, length)
+    to_remove = [c for c in square.candidates if c != num]
+    remove_candidates(squares, square, to_remove, None)
 
 
-def box_related(squares, square, candtable=None):
-    # TODO: Stop trying to remove candidates from boxes that contain the value
-    # TODO: Revisit Logic to make it more clear
+def remove_candidates(squares, square, candidates, came_from):
+    relevant = []
+    for num in candidates:
+        try:
+            square.candidates.remove(num)
+            if len(square.candidates) == 1 and square.value is None:
+                set_square(squares, square, square.candidates[0])
+            relevant.append(num)
+        except ValueError: pass
 
-    # Maybe look at all the unrelated boxes, and the ones with the same value, look at the intersection box
-    # (can be only one) to see if the empty squares with the value as candidate are in the same row/col
-    box_coord = (int(square.coord[0] / n), int(square.coord[1] / n))
-    others = unrelated_boxes(squares, square)
-    possible = []
-    for o in others:
-        p1, p2 = (o[0], box_coord[1]), (box_coord[0], o[1])
-        i1, i2 = index_of(possible, p1), index_of(possible, p2)
+    related = related_iterator(squares, square)
+    for rel in range(len(related)):
+        if came_from is not None and related[rel].count(came_from) > 0: continue
+        for r in relevant:
+            has_r, rest = [], []
+            for sq in related[rel]:
+                if sq.candidates.count(r) > 0: has_r.append(sq)
+                else: rest.append(sq)
 
-        if i1 == -1: possible.append(p1)
-        if i2 == -1: possible.append(p2)
+            if len(rest) > n:
+                candidate_array = [x.candidates for x in has_r]
+                if len(candidate_array) > 0:
+                    common = list(set.intersection(*map(set, candidate_array)))
 
-    for pos in possible:
-        box = [squares[int(x / n) * size + (x % n) + n * (pos[1] + size * pos[0])] for x in range(size)]
-        empty = [i for i in box if i.candidates.count(square.value) > 0]
+                    # check if any of the values in common exist outside cand_r
+                    actual = [c for c in common if not any(c in can.candidates for can in rest)]
+                    if len(actual) == len(has_r):
+                        # Remove all candidates from squares in has_r except those in actual
+                        for sq in has_r:
+                            remove_candidates(squares, sq, [c for c in sq.candidates if actual.count(c) == 0], None)
 
-        if len(empty) == 1:
-            length = len(empty[0].candidates)
-            empty[0].candidates = [square.value]
-            if candtable is not None: candtable.update(empty[0], length)
-        elif len(empty) > 1:
-            # Check if the n squares with the value share n
-            frequency = [0]*size
-            for sq in box:
-                for num in sq.candidates:
-                    frequency[num - 1] += 1
+                        for sq in rest:
+                            remove_candidates(squares, sq, actual, None)
 
-            k = frequency[square.value - 1]
-            possible = [i+1 for i in range(len(frequency)) if frequency[i] == k]
-            actual = []
-            for p in possible:
-                hasall = True
-                for e in empty:
-                    if e.candidates.count(p) == 0:
-                        hasall = False
-                        break
-                if hasall: actual.append(p)
-
-            removed = []
-            if len(actual) == k:
-                for e in empty:
-                    length = len(e.candidates)
-                    removed += [x for x in e.candidates if actual.count(x) == 0 and removed.count(x) == 0]
-                    e.candidates = actual.copy()
-                    if candtable is not None: candtable.update(e, length)
-
-            # Check if they are in the same row/col to remove
-            removed.append(square.value)
-            for num in removed:
-                empty = [i for i in box if i.candidates.count(num) > 0]
-                if len(empty) == 0: break
-                row = empty[0].coord[0]
-                col = empty[0].coord[1]
+            unit = []
+            # if rel is 2 (they are in the same box) check if the squares are in the same row/col
+            if rel == 2:
+                row = has_r[0].coord[0]
+                col = has_r[0].coord[1]
                 same_row, same_col = True, True
-                for e in range(1, len(empty)):
-                    if same_row and row != empty[e].coord[0]: same_row = False
-                    if same_col and col != empty[e].coord[1]: same_col = False
+                for e in range(1, len(has_r)):
+                    if same_row and row != has_r[e].coord[0]: same_row = False
+                    if same_col and col != has_r[e].coord[1]: same_col = False
 
                 if same_row:
-                    for i in range(size-n):
-                        tempc = (((col//n)+1)*n + i) % size
-                        s = squares[row*size + tempc]
-                        try:
-                            length = len(s.candidates)
-                            s.candidates.remove(num)
-                            if candtable is not None: candtable.update(s, length)
-                        except ValueError: pass
+                    for i in range(size - n):
+                        tempc = (((col // n) + 1) * n + i) % size
+                        unit.append(squares[row * size + tempc])
 
-                if same_col:
+                elif same_col:
                     for i in range(size-n):
                         tempr = (((row//n)+1)*n + i) % size
-                        s = squares[tempr*size + col]
-                        try:
-                            length = len(s.candidates)
-                            s.candidates.remove(num)
-                            if candtable is not None: candtable.update(s, length)
-                        except ValueError: pass
+                        unit.append(squares[tempr*size + col])
+            else:  # if rel is 0 or 1 check if the squares with r are in the same box
+                try:
+                    box = (has_r[0].coord[0] // n, has_r[0].coord[1] // n)
+                except IndexError:
+                    pass
+                same_box = True
+                for e in range(1, len(has_r)):
+                    if same_box and box != (has_r[e].coord[0] // n, has_r[e].coord[1] // n): same_box = False
 
+                if same_box:
+                    # Append all of the squares that are not in the current unit (row/col) to unit
+                    if rel == 0:
+                        for i in range(size):
+                            index = (i // n) * size + (i % n) + n * (box[1] + size * box[0])
+                            if index % size != has_r[0].coord[1]:
+                                unit.append(squares[index])
+                    else:
+                        for i in range(size):
+                            index = (i // n) * size + (i % n) + n * (box[1] + size * box[0])
+                            if index // size != has_r[0].coord[0]:
+                                unit.append(squares[index])
 
-def index_of(arr, item):
-    for i in range(len(arr)):
-        if arr[i] == item:
-            return i
-
-    return -1
-
-
-"""
-Returns an iterator of length 3 with each element being a list (size - 1)
-of squares in the column, row, then box respectively 
-"""
+            for sq in unit:
+                remove_candidates(squares, sq, [r], has_r[0])
 
 
 def related_iterator(squares, square):
@@ -212,85 +140,27 @@ def related_iterator(squares, square):
         col = squares[j * size + square.coord[1]]
         row = squares[square.coord[0] * size + j]
 
-        boxr, boxc = int(square.coord[0] / n), int(square.coord[1] / n)
-        box = squares[int(j / n) * size + (j % n) + n * (boxc + size * boxr)]
+        boxr, boxc = square.coord[0] // n, square.coord[1] // n
+        box = squares[(j // n) * size + (j % n) + n * (boxc + size * boxr)]
 
-        if col != square: cols.append(col)
-        if row != square: rows.append(row)
-        if box != square: boxs.append(box)
+        cols.append(col)
+        rows.append(row)
+        boxs.append(box)
 
     return [cols, rows, boxs]
-
-
-def related_boxes(squares, square):
-    boxr, boxc = int(square.coord[0] / n), int(square.coord[1] / n)
-    boxes = []
-
-    for j in range(n):
-        box = [squares[int(x / n) * size + (x % n) + n * (j + size * boxr)] for x in range(size)]
-        if j != boxc: boxes.append(box)
-
-    for j in range(n):
-        box = [squares[int(x / n) * size + (x % n) + n * (boxc + size * j)] for x in range(size)]
-        if j != boxr: boxes.append(box)
-
-    return boxes
-
-
-def unrelated_boxes(squares, square):
-    boxr, boxc = int(square.coord[0] / n), int(square.coord[1] / n)
-    boxes = []
-    for r in range(1, n):
-        nextr = (boxr + r) % n
-        for c in range(1, n):
-            nextc = (boxc + c) % n
-            for x in range(size):
-                if squares[int(x / n) * size + (x % n) + n * (nextc + size * nextr)].value == square.value:
-                    boxes.append((nextr, nextc))
-                    break
-
-    return boxes
 
 
 def squares_to_board(squares):
     board = []
     for s in squares:
-        if s.value:
-            board.append(s.value)
-        else:
-            board.append(0)
+        board.append(s.value if s.value else 0)
 
     return board
 
 
 def print_board(squares):
     temp = []
-    for r in range(size):
-        temp.append([squares[r * size + c] for c in range(size)])
+    for row in range(size):
+        temp.append([squares[row * size + c] for c in range(size)])
 
     return temp
-
-
-def valid(num, pos, grid):
-    for i in range(size):
-        if num == grid[i * size + pos[1]]:
-            return False
-        if num == grid[pos[0] * size + i]:
-            return False
-
-        boxr = int(pos[0] / n)
-        boxc = int(pos[1] / n)
-
-        index = int(i / n) * size + (i % n) + n * (boxc + size * boxr)
-        if num == grid[index]:
-            return False
-
-    return True
-
-
-def shuffle(arr):
-    for i in reversed(range(size)):
-        index = random.randint(0, i)
-        arr[index], arr[i] = arr[i], arr[index]
-
-    return arr
