@@ -41,6 +41,9 @@ class Square:
         else:
             return "{ " + str(self.coord[0]) + ", " + str(self.coord[1]) + " : " + str(self.value) + " }"
 
+    def __copy__(self):
+        return Square(self.coord[0], self.coord[1], self.candidates, self.value)
+
     def set(self, value):
         self.value = value
 

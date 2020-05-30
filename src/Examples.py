@@ -168,8 +168,8 @@ class TestCandidates(unittest.TestCase):
         self.assertEquals(self.squares[23].candidates, [5])
 
     def test_board_generation(self):
-        example = Board()
-        example.print()
+        example = Sudoku()
+        example.print_solution()
 
     def test_generate_many(self):
         generate_1000()

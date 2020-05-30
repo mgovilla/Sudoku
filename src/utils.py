@@ -1,24 +1,45 @@
 from math import sqrt
-
+from statistics import mean
 from src.CandidateTable import *
 
 size = 9
 n = int(sqrt(size))
 numbers = [i + 1 for i in range(size)]  # List of the possible numbers
 
+depths = []
+difficulty = -1
+
 
 def generate():
-    squares = [Square(i // size, i % size, numbers.copy()) for i in range(size**2)]
-    empty_squares = empty(squares)
-
     givens = []
-    while len(empty_squares) > 0:
-        square = random.sample(empty_squares, 1)[0]
-        givens.append(square)
-        set_square(squares, square, square.random_cand())
-        empty_squares = empty(squares)
+    squares = [Square(i // size, i % size, numbers.copy()) for i in range(size**2)]
+    board = squares_to_board(_generate(squares, givens))
+    temp = [0]*size**2
+    for g in givens:
+        temp[g.coord[0]*size + g.coord[1]] = g.value
+    return temp
 
-    return squares_to_board(squares)
+
+def _generate(squares, givens):
+    _empty = empty(squares)
+
+    if len(_empty) == 0:
+        return squares
+
+    square = random.sample(_empty, 1)[0]
+    possible = random.sample(square.candidates, len(square.candidates))
+    for num in possible:
+        new_board = squares.copy()
+        try:
+            set_square(new_board, square, num)
+            generated = _generate(new_board, givens)
+            if generated is not None:
+                givens.append(square)
+                return generated
+        except IndexError:
+            pass
+
+    return None
 
 
 def empty(squares):
@@ -32,13 +53,23 @@ def empty(squares):
 
 def solve(board):
     # Initialization with the input board
-    squares = [Square(i // size, i % size, numbers.copy()) for i in range(len(board))]
+    global difficulty, depths
+    difficulty = -1
+    depths = []
+    squares = [Square(i // size, i % size, numbers.copy()) for i in range(size**2)]
+    valid = True
 
     for i in range(len(board)):
         num = board[i]
         if num > 0:
-            set_square(squares, squares[i], num)
+            try:
+                set_square(squares, squares[i], num)
+            except IndexError:
+                valid = False
 
+    if valid:
+        difficulty = mean(depths)
+        print(list(filter(lambda x: x != 1, depths)))
     return squares_to_board(squares)
 
 
@@ -49,13 +80,14 @@ def set_square(squares, square, num):
         for sq in related[rel]:
             # remove the square's value from the candidates list if it's there
             if sq != square:
-                remove_candidates(squares, sq, [num], square)
+                depths.append(remove_candidates(squares, sq, [num], square, 1))
 
     to_remove = [c for c in square.candidates if c != num]
-    remove_candidates(squares, square, to_remove, None)
+    depths.append(remove_candidates(squares, square, to_remove, None, 1))
 
 
-def remove_candidates(squares, square, candidates, came_from):
+def remove_candidates(squares, square, candidates, came_from, depth):
+    _depths = []
     relevant = []
     for num in candidates:
         try:
@@ -63,7 +95,8 @@ def remove_candidates(squares, square, candidates, came_from):
             if len(square.candidates) == 1 and square.value is None:
                 set_square(squares, square, square.candidates[0])
             relevant.append(num)
-        except ValueError: pass
+        except ValueError:
+            pass
 
     related = related_iterator(squares, square)
     for rel in range(len(related)):
@@ -71,8 +104,10 @@ def remove_candidates(squares, square, candidates, came_from):
         for r in relevant:
             has_r, rest = [], []
             for sq in related[rel]:
-                if sq.candidates.count(r) > 0: has_r.append(sq)
-                else: rest.append(sq)
+                if sq.candidates.count(r) > 0:
+                    has_r.append(sq)
+                else:
+                    rest.append(sq)
 
             if len(rest) > n:
                 candidate_array = [x.candidates for x in has_r]
@@ -84,10 +119,11 @@ def remove_candidates(squares, square, candidates, came_from):
                     if len(actual) == len(has_r):
                         # Remove all candidates from squares in has_r except those in actual
                         for sq in has_r:
-                            remove_candidates(squares, sq, [c for c in sq.candidates if actual.count(c) == 0], None)
+                            temp = [c for c in sq.candidates if actual.count(c) == 0]
+                            _depths.append(remove_candidates(squares, sq, temp, None, depth+1))
 
                         for sq in rest:
-                            remove_candidates(squares, sq, actual, None)
+                            _depths.append(remove_candidates(squares, sq, actual, None, depth+1))
 
             unit = []
             # if rel is 2 (they are in the same box) check if the squares are in the same row/col
@@ -105,14 +141,11 @@ def remove_candidates(squares, square, candidates, came_from):
                         unit.append(squares[row * size + tempc])
 
                 elif same_col:
-                    for i in range(size-n):
-                        tempr = (((row//n)+1)*n + i) % size
-                        unit.append(squares[tempr*size + col])
+                    for i in range(size - n):
+                        tempr = (((row // n) + 1) * n + i) % size
+                        unit.append(squares[tempr * size + col])
             else:  # if rel is 0 or 1 check if the squares with r are in the same box
-                try:
-                    box = (has_r[0].coord[0] // n, has_r[0].coord[1] // n)
-                except IndexError:
-                    pass
+                box = (has_r[0].coord[0] // n, has_r[0].coord[1] // n)
                 same_box = True
                 for e in range(1, len(has_r)):
                     if same_box and box != (has_r[e].coord[0] // n, has_r[e].coord[1] // n): same_box = False
@@ -131,7 +164,12 @@ def remove_candidates(squares, square, candidates, came_from):
                                 unit.append(squares[index])
 
             for sq in unit:
-                remove_candidates(squares, sq, [r], has_r[0])
+                _depths.append(remove_candidates(squares, sq, [r], has_r[0], depth+1))
+
+    if len(_depths) > 0:
+        return max(_depths)
+
+    return depth
 
 
 def related_iterator(squares, square):
