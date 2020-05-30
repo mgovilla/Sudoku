@@ -1,0 +1,25 @@
+[5 0 0  0 0 0  8 0 0] 
+[0 6 0  0 0 2  0 0 0] 
+[0 0 3  5 0 0  0 7 2] 
+
+[7 5 6  4 0 0  1 2 3] 
+[3 8 9  2 5 1  4 6 7] 
+[4 0 0  0 6 0  0 0 0] 
+
+[1 0 0  9 0 5  0 0 0] 
+[6 0 5  0 0 0  0 0 9] 
+[2 9 8  0 0 0  0 0 1]
+
+0,2 cannot be a 4 because it forces 1,2 to be a 7 which 
+causes a contradiction in 6,2 which can only be 4 or 7
+
+However, I can't think of a way to see this without just trying
+4 via backtracking. The reason for this is the 2 in the first box 
+is dependent on 0,2. When it is set to 4, the 2 must be in 0,1
+which leaves only 1,2 to be the 7. But this logic is inherently 
+backtracking, how can we see it to remove the candidate 4 from 
+0,2?
+
+We have to notice the dependency of 7 and 2 on that 4?
+
+I am just going to implement backtracking for generation anyway
