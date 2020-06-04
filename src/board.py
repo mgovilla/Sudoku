@@ -16,7 +16,10 @@ class Sudoku:
         else:
             self.board = init
 
-        self.solution = solve(self.board)
+        self.solution, _depths = solve(self.board)
+        length = len(_depths)
+        # _depths = list(filter(lambda x: x > 1, _depths))
+        self.difficulty = (len(_depths), mean(_depths), length - len(_depths))
 
         # self.solution = factory.solve(self.board)
         # self.difficulty = factory.difficulty
@@ -32,7 +35,7 @@ class Sudoku:
 
 
 def generate_1000():
-    file = open("generated/boards_9_recursive.txt", "w")
+    file = open("generated/boards_9_rated.txt", "w")
     for i in range(1000):
         board = Sudoku()
         file.write(str(board.solution) + "\n")
@@ -41,8 +44,9 @@ def generate_1000():
 
 
 if __name__ == "__main__":
-    n = Sudoku()
-    n.print_puzzle()
-    n.print_solution()
+    for p in puzzles:
+        n = Sudoku(p)
+        print(n.difficulty)
+    # n.print_puzzle()
 
 
