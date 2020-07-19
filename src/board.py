@@ -9,20 +9,12 @@ class Sudoku:
 
     def __init__(self, init=None):
         # Generate the sudoku
-        # factory = SudokuFactory(9)
         if init is None:
-            # self.board = factory.generate()
             self.board = generate()
         else:
             self.board = init
 
-        self.solution, _depths = solve(self.board)
-        length = len(_depths)
-        # _depths = list(filter(lambda x: x > 1, _depths))
-        self.difficulty = (len(_depths), mean(_depths), length - len(_depths))
-
-        # self.solution = factory.solve(self.board)
-        # self.difficulty = factory.difficulty
+        self.solution= solve(self.board)
 
     def print_solution(self):
         # size = int(sqrt(len(self.solution)))
@@ -35,18 +27,13 @@ class Sudoku:
 
 
 def generate_1000():
-    file = open("generated/boards_9_rated.txt", "w")
-    for i in range(1000):
-        board = Sudoku()
-        file.write(str(board.solution) + "\n")
-
-    file.close()
+    with open("generated/boards_9_rated.txt", "w") as file:
+        for i in range(1000):
+            board = Sudoku()
+            file.write(str(board.solution) + "\n")
 
 
 if __name__ == "__main__":
-    for p in puzzles:
-        n = Sudoku(p)
-        print(n.difficulty)
-    # n.print_puzzle()
+    generate_1000()
 
 
