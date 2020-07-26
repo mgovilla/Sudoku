@@ -1,6 +1,7 @@
 from math import sqrt
 from statistics import mean
 from src.CandidateTable import *
+import copy
 
 size = 9
 n = int(sqrt(size))
@@ -9,12 +10,16 @@ numbers = [i + 1 for i in range(size)]  # List of the possible numbers
 
 def generate():
     givens = []
+    init_board = random.sample(numbers, size) + [0]*(size*(size - 1))
     squares = [Square(i // size, i % size, numbers.copy()) for i in range(size**2)]
+    for i in range(size):
+        set_square(squares, squares[i], init_board[i])
+
     board = squares_to_board(_generate(squares, givens))
     temp = [0]*size**2
     for g in givens:
         temp[g.coord[0]*size + g.coord[1]] = g.value
-    return temp
+    return temp, board
 
 
 def _generate(squares, givens):
@@ -26,12 +31,12 @@ def _generate(squares, givens):
     square = random.sample(_empty, 1)[0]
     possible = random.sample(square.candidates, len(square.candidates))
     for num in possible:
-        new_board = squares.copy()
+        new_board = copy.deepcopy(squares)
         try:
-            set_square(new_board, square, num)
+            set_square(new_board, new_board[square.coord[0]*size + square.coord[1]], num)
             generated = _generate(new_board, givens)
             if generated is not None:
-                givens.append(square)
+                givens.append(new_board[square.coord[0]*size + square.coord[1]])
                 return generated
         except IndexError:
             pass
@@ -40,12 +45,7 @@ def _generate(squares, givens):
 
 
 def empty(squares):
-    temp = []
-    for square in squares:
-        if square.value is None:
-            temp.append(square)
-
-    return temp
+    return [square for square in squares if square.value is None]
 
 
 def solve(board):
@@ -108,7 +108,6 @@ def remove_candidates(squares, square, candidates, came_from):
                     actual = [c for c in common if not any(c in can.candidates for can in rest)]
                     if len(actual) == len(has_r):
                         # Remove all candidates from squares in has_r except those in actual
-                        multiplier = 4 - abs(4 - len(actual))
                         for sq in has_r:
                             temp = [c for c in sq.candidates if actual.count(c) == 0]
                             remove_candidates(squares, sq, temp, None)
