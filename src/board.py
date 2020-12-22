@@ -1,9 +1,8 @@
 from src.utils import *
 from src.evaluate import *
 
-"""
-Board class to hold the Sudoku 
-"""
+
+# Board class to hold the Sudoku
 class Sudoku:
 
     def __init__(self, init=None):
